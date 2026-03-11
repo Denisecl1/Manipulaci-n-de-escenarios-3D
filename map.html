@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<title>Three.js - Ciudad 3D (Map Controls)</title>
+
+<meta charset="utf-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="css/styles.css">
+
+<style>
+
+body{
+margin:0;
+overflow:hidden;
+background:#202030;
+color:white;
+font-family:Arial;
+}
+
+/* panel superior */
+
+#info{
+
+position:absolute;
+
+top:20px;
+width:100%;
+
+text-align:center;
+
+z-index:100;
+
+}
+
+#info h4{
+margin:0;
+font-size:20px;
+}
+
+#info p{
+margin:5px 0;
+font-size:14px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<div id="info">
+
+<h4>Explorador de Ciudad 3D</h4>
+<p>Navega con el mouse por la ciudad</p>
+
+</div>
+
+
+
+<script type="importmap">
+{
+"imports": {
+"three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+"three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+}
+}
+</script>
+
+
+
+<script type="module">
+
+import * as THREE from 'three';
+
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+
+import { MapControls } from 'three/addons/controls/MapControls.js';
+
+
+let camera, controls, scene, renderer;
+
+init();
+
+
+function init(){
+
+scene = new THREE.Scene();
+
+scene.background = new THREE.Color(0xaec6ff);
+
+scene.fog = new THREE.FogExp2(0x202030,0.0008);
+
+
+// renderer
+
+renderer = new THREE.WebGLRenderer({antialias:true});
+
+renderer.setPixelRatio(window.devicePixelRatio);
+
+renderer.setSize(window.innerWidth,window.innerHeight);
+
+renderer.setAnimationLoop(animate);
+
+document.body.appendChild(renderer.domElement);
+
+
+// camera
+
+camera = new THREE.PerspectiveCamera(
+60,
+window.innerWidth/window.innerHeight,
+1,
+2000
+);
+
+camera.position.set(400,300,400);
+
+camera.lookAt(0,0,0);
+
+
+// controls
+
+controls = new MapControls(camera,renderer.domElement);
+
+controls.enableDamping = true;
+
+controls.dampingFactor = 0.05;
+
+controls.screenSpacePanning = false;
+
+controls.minDistance = 100;
+
+controls.maxDistance = 1000;
+
+controls.maxPolarAngle = Math.PI/2;
+
+
+// suelo ciudad
+
+const groundGeometry = new THREE.PlaneGeometry(2000,2000);
+
+const groundMaterial = new THREE.MeshPhongMaterial({
+color:0x2e2e2e
+});
+
+const ground = new THREE.Mesh(groundGeometry,groundMaterial);
+
+ground.rotation.x = -Math.PI/2;
+
+scene.add(ground);
+
+
+// grid calles
+
+const grid = new THREE.GridHelper(2000,80,0x444444,0x444444);
+
+scene.add(grid);
+
+
+// edificios
+
+const geometry = new THREE.BoxGeometry();
+
+geometry.translate(0,0.5,0);
+
+const material = new THREE.MeshPhongMaterial({
+color:0x3f4a6b,
+flatShading:true
+});
+
+const mesh = new THREE.InstancedMesh(geometry,material,500);
+
+const dummy = new THREE.Object3D();
+
+
+for(let i=0;i<500;i++){
+
+dummy.position.x = Math.random()*1600-800;
+
+dummy.position.z = Math.random()*1600-800;
+
+dummy.position.y = 0;
+
+dummy.scale.x = 20;
+
+dummy.scale.z = 20;
+
+dummy.scale.y = Math.random()*120+20;
+
+dummy.updateMatrix();
+
+mesh.setMatrixAt(i,dummy.matrix);
+
+}
+
+scene.add(mesh);
+
+
+// luces
+
+const dirLight1 = new THREE.DirectionalLight(0xffffff,4);
+
+dirLight1.position.set(100,200,100);
+
+scene.add(dirLight1);
+
+
+const dirLight2 = new THREE.DirectionalLight(0x4455aa,1);
+
+dirLight2.position.set(-100,200,-100);
+
+scene.add(dirLight2);
+
+
+const ambientLight = new THREE.AmbientLight(0x888888);
+
+
+scene.add(ambientLight);
+
+
+// GUI
+
+const gui = new GUI();
+
+gui.add(controls,'zoomToCursor');
+
+gui.add(controls,'screenSpacePanning');
+
+
+// resize
+
+window.addEventListener("resize",onWindowResize);
+
+}
+
+
+function onWindowResize(){
+
+camera.aspect = window.innerWidth/window.innerHeight;
+
+camera.updateProjectionMatrix();
+
+renderer.setSize(window.innerWidth,window.innerHeight);
+
+}
+
+
+function animate(){
+
+controls.update();
+
+renderer.render(scene,camera);
+
+}
+
+</script>
+
+
+</body>
+
+</html>

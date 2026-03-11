@@ -764,3 +764,51 @@ font-size: 13px;
 z-index: 100;
 
 }
+
+
+
+/*---------------Map controls---------------*/
+/* PANEL SUPERIOR */
+
+#info{
+
+position:absolute;
+
+top:80px;
+
+left:20px;
+
+background:rgba(0,0,0,0.7);
+
+color:white;
+
+padding:15px 20px;
+
+border-radius:10px;
+
+font-family:Arial;
+
+z-index:100;
+
+}
+
+
+/* TITULO */
+
+#info h4{
+
+margin:0;
+font-size:18px;
+
+}
+
+
+/* TEXTO */
+
+#info p{
+
+margin:5px 0 0 0;
+
+font-size:13px;
+
+}
