@@ -24,16 +24,11 @@ font-family:Arial;
 /* panel superior */
 
 #info{
-
 position:absolute;
-
 top:20px;
 width:100%;
-
 text-align:center;
-
 z-index:100;
-
 }
 
 #info h4{
@@ -52,11 +47,35 @@ font-size:14px;
 
 <body>
 
+<!-- NAVBAR -->
 
-<div id="info">
+<nav class="navbar">
 
-<h4>Explorador de Ciudad 3D</h4>
-<p>Navega con el mouse por la ciudad</p>
+<div class="logo">Three.js Demos</div>
+
+<ul class="menu">
+
+<li><a href="index.html">Inicio</a></li>
+
+<li><a href="minecraft.html">Minecraft</a></li>
+
+<li><a href="orbit.html">Orbit Controls</a></li>
+
+<li><a href="map.html" class="active">Map Controls</a></li>
+
+<li><a href="pointerlock.html">Pointer Lock</a></li>
+
+</ul>
+
+</nav>
+
+<!-- TITULO -->
+
+<div class="titlePanel">
+
+<h2>Ciudad 3D Interactiva</h2>
+
+<p>Explora la ciudad usando Map Controls</p>
 
 </div>
 
@@ -76,16 +95,12 @@ font-size:14px;
 <script type="module">
 
 import * as THREE from 'three';
-
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-
 import { MapControls } from 'three/addons/controls/MapControls.js';
-
 
 let camera, controls, scene, renderer;
 
 init();
-
 
 function init(){
 
@@ -177,7 +192,6 @@ const mesh = new THREE.InstancedMesh(geometry,material,500);
 
 const dummy = new THREE.Object3D();
 
-
 for(let i=0;i<500;i++){
 
 dummy.position.x = Math.random()*1600-800;
@@ -201,25 +215,146 @@ mesh.setMatrixAt(i,dummy.matrix);
 scene.add(mesh);
 
 
+
+/* ======================
+        ARBOLES
+====================== */
+
+const trunkGeometry = new THREE.CylinderGeometry(1,1,8);
+const trunkMaterial = new THREE.MeshPhongMaterial({color:0x8b5a2b});
+
+const leavesGeometry = new THREE.SphereGeometry(4);
+const leavesMaterial = new THREE.MeshPhongMaterial({color:0x2e8b57});
+
+for(let i=0;i<60;i++){
+
+const trunk = new THREE.Mesh(trunkGeometry,trunkMaterial);
+const leaves = new THREE.Mesh(leavesGeometry,leavesMaterial);
+
+const x = Math.random()*1600-800;
+const z = Math.random()*1600-800;
+
+trunk.position.set(x,4,z);
+leaves.position.set(x,10,z);
+
+scene.add(trunk);
+scene.add(leaves);
+
+}
+
+
+
+/* ======================
+        FAROLES
+====================== */
+
+const poleGeometry = new THREE.CylinderGeometry(0.8,0.8,20);
+const poleMaterial = new THREE.MeshPhongMaterial({color:0x555555});
+
+const lampGeometry = new THREE.SphereGeometry(2);
+const lampMaterial = new THREE.MeshBasicMaterial({color:0xffffaa});
+
+for(let i=0;i<30;i++){
+
+const pole = new THREE.Mesh(poleGeometry,poleMaterial);
+const lamp = new THREE.Mesh(lampGeometry,lampMaterial);
+
+const x = Math.random()*1600-800;
+const z = Math.random()*1600-800;
+
+pole.position.set(x,10,z);
+lamp.position.set(x,20,z);
+
+scene.add(pole);
+scene.add(lamp);
+
+}
+/* ======================
+        CARROS
+====================== */
+
+/* ======================
+        CARROS
+====================== */
+
+const cars = [];
+
+const carGeometry = new THREE.BoxGeometry(8,4,4);
+
+for(let i=0;i<15;i++){
+
+const color = new THREE.Color(Math.random(),Math.random(),Math.random());
+
+const carMaterial = new THREE.MeshPhongMaterial({color:color});
+
+const car = new THREE.Mesh(carGeometry,carMaterial);
+
+car.position.x = Math.random()*1600-800;
+car.position.z = Math.random()*1600-800;
+car.position.y = 2;
+
+scene.add(car);
+
+// dirección aleatoria
+const direction = Math.random() > 0.5 ? "x" : "z";
+
+cars.push({
+mesh:car,
+speed:Math.random()*1+0.3,
+direction:direction
+});
+
+}
+
+
+/*animacion */
+
+
+function animate(){
+
+controls.update();
+
+cars.forEach(car=>{
+
+if(car.direction === "x"){
+
+car.mesh.position.x += car.speed;
+
+if(car.mesh.position.x > 800){
+car.mesh.position.x = -800;
+}
+
+}
+
+if(car.direction === "z"){
+
+car.mesh.position.z += car.speed;
+
+if(car.mesh.position.z > 800){
+car.mesh.position.z = -800;
+}
+
+}
+
+});
+
+renderer.render(scene,camera);
+
+}
+
+
+
 // luces
 
 const dirLight1 = new THREE.DirectionalLight(0xffffff,4);
-
 dirLight1.position.set(100,200,100);
-
 scene.add(dirLight1);
 
-
 const dirLight2 = new THREE.DirectionalLight(0x4455aa,1);
-
 dirLight2.position.set(-100,200,-100);
-
 scene.add(dirLight2);
 
-
 const ambientLight = new THREE.AmbientLight(0x888888);
-
-
 scene.add(ambientLight);
 
 
@@ -228,7 +363,6 @@ scene.add(ambientLight);
 const gui = new GUI();
 
 gui.add(controls,'zoomToCursor');
-
 gui.add(controls,'screenSpacePanning');
 
 
@@ -237,6 +371,7 @@ gui.add(controls,'screenSpacePanning');
 window.addEventListener("resize",onWindowResize);
 
 }
+
 
 
 function onWindowResize(){
@@ -260,6 +395,13 @@ renderer.render(scene,camera);
 
 </script>
 
+
+
+<footer class="footer2">
+<span>Proyecto Three.js | Ciudad 3D</span>
+<span> | Denis</span>
+<span> | Ambientes de Desarrollo Virtuales</span>
+</footer>
 
 </body>
 
