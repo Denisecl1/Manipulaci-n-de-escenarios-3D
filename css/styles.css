@@ -743,3 +743,24 @@ iframe#viewer {
 		padding-left: 0;
 	}
 }
+
+/* FOOTER */
+
+footer{
+
+position: fixed;
+bottom: 0;
+width: 100%;
+
+background: #111;
+color: white;
+
+text-align: center;
+
+padding: 8px;
+
+font-size: 13px;
+
+z-index: 100;
+
+}
