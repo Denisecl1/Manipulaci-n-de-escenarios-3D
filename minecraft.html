@@ -1,233 +1,451 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <title>three.js webgl - geometry - minecraft</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-        <link type="text/css" rel="stylesheet" href="css/styles.css">
-        <style>
-            body {
-                background-color: #bfd1e5;
-                color: #61443e;
-                margin: 0; 
-                overflow: hidden;
-            }
-            a {
-                color: #a06851;
-            }
-            #info {
-                position: absolute;
-                top: 10px;
-                width: 100%;
-                text-align: center;
-                z-index: 100;
-                display: block;
-                font-family: monospace;
-            }
-        </style>
-    </head>
-    <body>
-        <nav class="navbar">
-    <div class="logo">🌎 Minecraft World</div>
-    <ul>
-        <li><a href="#">Inicio</a></li>
-        <li><a href="#">Explorar</a></li>
-        <li><a href="#">Mundo</a></li>
-        <li><a href="#">Contacto</a></li>
-    </ul>
+<head>
+<title>three.js webgl - geometry - minecraft</title>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=no">
+
+<link rel="stylesheet" href="css/styles.css">
+
+<style>
+
+body{
+margin:0;
+overflow:hidden;
+background:#bfd1e5;
+}
+
+#info{
+position:absolute;
+top:10px;
+width:100%;
+text-align:center;
+z-index:100;
+font-family:monospace;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<nav class="navbar">
+<div class="logo">🌎 Minecraft World</div>
+<ul>
+<li><a href="#">Inicio</a></li>
+<li><a href="#">Explorar</a></li>
+<li><a href="#">Mundo</a></li>
+<li><a href="#">Contacto</a></li>
+</ul>
 </nav>
 
+<div id="container"></div>
 
-        <div id="container"></div>
-        <div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - <a href="http://www.minecraft.net/" target="_blank" rel="noopener">minecraft</a> demo.<br />(left click: forward, right click: backward)</div>
+<div id="info">
+three.js - minecraft demo
+<br>
+click para controlar la cámara
+</div>
 
-        <script type="importmap">
-            {
-                "imports": {
-                    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-                }
-            }
-        </script>
+<script type="importmap">
+{
+"imports":{
+"three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+"three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+}
+}
+</script>
 
-        <script type="module">
+<script type="module">
 
-            import * as THREE from 'three';
-            import Stats from 'three/addons/libs/stats.module.js';
-            import { FirstPersonControls } from 'three/addons/controls/FirstPersonControls.js';
-            import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js';
-            import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+import * as THREE from 'three';
+import Stats from 'three/addons/libs/stats.module.js';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
-            let container, stats;
-            let camera, controls, scene, renderer;
+let container, stats;
+let camera, controls, scene, renderer;
 
-            const worldWidth = 128, worldDepth = 128;
-            const worldHalfWidth = worldWidth / 2;
-            const worldHalfDepth = worldDepth / 2;
-            const data = generateHeight( worldWidth, worldDepth );
+const animals = [];
+let time = 0;
 
-            // SOLUCIÓN: Usamos el Reloj nativo de Three.js en lugar de Timer
-            const clock = new THREE.Clock();
+const move = {
+forward:false,
+back:false,
+left:false,
+right:false
+};
 
-            init();
+const speed = 400;
 
-            function init() {
+const worldWidth = 128;
+const worldDepth = 128;
 
-                container = document.getElementById( 'container' );
+const worldHalfWidth = worldWidth/2;
+const worldHalfDepth = worldDepth/2;
 
-                camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 20000 );
-                camera.position.y = getY( worldHalfWidth, worldHalfDepth ) * 100 + 100;
+const data = generateHeight(worldWidth,worldDepth);
 
-                scene = new THREE.Scene();
-                scene.background = new THREE.Color( 0xbfd1e5 );
+const clock = new THREE.Clock();
 
-                // sides
-                const matrix = new THREE.Matrix4();
+init();
 
-                const pxGeometry = new THREE.PlaneGeometry( 100, 100 );
-                pxGeometry.attributes.uv.array[ 1 ] = 0.5;
-                pxGeometry.attributes.uv.array[ 3 ] = 0.5;
-                pxGeometry.rotateY( Math.PI / 2 );
-                pxGeometry.translate( 50, 0, 0 );
+function init(){
 
-                const nxGeometry = new THREE.PlaneGeometry( 100, 100 );
-                nxGeometry.attributes.uv.array[ 1 ] = 0.5;
-                nxGeometry.attributes.uv.array[ 3 ] = 0.5;
-                nxGeometry.rotateY( - Math.PI / 2 );
-                nxGeometry.translate( - 50, 0, 0 );
+container = document.getElementById("container");
 
-                const pyGeometry = new THREE.PlaneGeometry( 100, 100 );
-                pyGeometry.attributes.uv.array[ 5 ] = 0.5;
-                pyGeometry.attributes.uv.array[ 7 ] = 0.5;
-                pyGeometry.rotateX( - Math.PI / 2 );
-                pyGeometry.translate( 0, 50, 0 );
+camera = new THREE.PerspectiveCamera(
+60,
+window.innerWidth/window.innerHeight,
+1,
+20000
+);
 
-                const pzGeometry = new THREE.PlaneGeometry( 100, 100 );
-                pzGeometry.attributes.uv.array[ 1 ] = 0.5;
-                pzGeometry.attributes.uv.array[ 3 ] = 0.5;
-                pzGeometry.translate( 0, 0, 50 );
+camera.position.y = 200;
 
-                const nzGeometry = new THREE.PlaneGeometry( 100, 100 );
-                nzGeometry.attributes.uv.array[ 1 ] = 0.5;
-                nzGeometry.attributes.uv.array[ 3 ] = 0.5;
-                nzGeometry.rotateY( Math.PI );
-                nzGeometry.translate( 0, 0, - 50 );
+scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
 
-                // geometries
-                const geometries = [];
+const matrix = new THREE.Matrix4();
 
-                for ( let z = 0; z < worldDepth; z ++ ) {
-                    for ( let x = 0; x < worldWidth; x ++ ) {
+const pxGeometry = new THREE.PlaneGeometry(100,100);
+pxGeometry.attributes.uv.array[1]=0.5;
+pxGeometry.attributes.uv.array[3]=0.5;
+pxGeometry.rotateY(Math.PI/2);
+pxGeometry.translate(50,0,0);
 
-                        const h = getY( x, z );
+const nxGeometry = new THREE.PlaneGeometry(100,100);
+nxGeometry.attributes.uv.array[1]=0.5;
+nxGeometry.attributes.uv.array[3]=0.5;
+nxGeometry.rotateY(-Math.PI/2);
+nxGeometry.translate(-50,0,0);
 
-                        matrix.makeTranslation(
-                            x * 100 - worldHalfWidth * 100,
-                            h * 100,
-                            z * 100 - worldHalfDepth * 100
-                        );
+const pyGeometry = new THREE.PlaneGeometry(100,100);
+pyGeometry.attributes.uv.array[5]=0.5;
+pyGeometry.attributes.uv.array[7]=0.5;
+pyGeometry.rotateX(-Math.PI/2);
+pyGeometry.translate(0,50,0);
 
-                        const px = getY( x + 1, z );
-                        const nx = getY( x - 1, z );
-                        const pz = getY( x, z + 1 );
-                        const nz = getY( x, z - 1 );
+const pzGeometry = new THREE.PlaneGeometry(100,100);
+pzGeometry.attributes.uv.array[1]=0.5;
+pzGeometry.attributes.uv.array[3]=0.5;
+pzGeometry.translate(0,0,50);
 
-                        geometries.push( pyGeometry.clone().applyMatrix4( matrix ) );
+const nzGeometry = new THREE.PlaneGeometry(100,100);
+nzGeometry.attributes.uv.array[1]=0.5;
+nzGeometry.attributes.uv.array[3]=0.5;
+nzGeometry.rotateY(Math.PI);
+nzGeometry.translate(0,0,-50);
 
-                        if ( ( px !== h && px !== h + 1 ) || x === 0 ) {
-                            geometries.push( pxGeometry.clone().applyMatrix4( matrix ) );
-                        }
+const geometries=[];
 
-                        if ( ( nx !== h && nx !== h + 1 ) || x === worldWidth - 1 ) {
-                            geometries.push( nxGeometry.clone().applyMatrix4( matrix ) );
-                        }
+for(let z=0;z<worldDepth;z++){
 
-                        if ( ( pz !== h && pz !== h + 1 ) || z === worldDepth - 1 ) {
-                            geometries.push( pzGeometry.clone().applyMatrix4( matrix ) );
-                        }
+for(let x=0;x<worldWidth;x++){
 
-                        if ( ( nz !== h && nz !== h + 1 ) || z === 0 ) {
-                            geometries.push( nzGeometry.clone().applyMatrix4( matrix ) );
-                        }
-                    }
-                }
+const h=getY(x,z);
 
-                const geometry = BufferGeometryUtils.mergeGeometries( geometries );
-                geometry.computeBoundingSphere();
+matrix.makeTranslation(
+x*100-worldHalfWidth*100,
+h*100,
+z*100-worldHalfDepth*100
+);
 
-                const texture = new THREE.TextureLoader().load( 'textures/minecraft/atlas.png' );
-                texture.colorSpace = THREE.SRGBColorSpace;
-                texture.magFilter = THREE.NearestFilter;
+const px=getY(x+1,z);
+const nx=getY(x-1,z);
+const pz=getY(x,z+1);
+const nz=getY(x,z-1);
 
-                const mesh = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { map: texture, side: THREE.DoubleSide } ) );
-                scene.add( mesh );
+geometries.push(pyGeometry.clone().applyMatrix4(matrix));
 
-                const ambientLight = new THREE.AmbientLight( 0xeeeeee, 3 );
-                scene.add( ambientLight );
+if((px!==h && px!==h+1)||x===0)
+geometries.push(pxGeometry.clone().applyMatrix4(matrix));
 
-                const directionalLight = new THREE.DirectionalLight( 0xffffff, 12 );
-                directionalLight.position.set( 1, 1, 0.5 ).normalize();
-                scene.add( directionalLight );
+if((nx!==h && nx!==h+1)||x===worldWidth-1)
+geometries.push(nxGeometry.clone().applyMatrix4(matrix));
 
-                renderer = new THREE.WebGLRenderer( { antialias: true } );
-                renderer.setPixelRatio( window.devicePixelRatio );
-                renderer.setSize( window.innerWidth, window.innerHeight );
-                renderer.setAnimationLoop( animate );
-                container.appendChild( renderer.domElement );
+if((pz!==h && pz!==h+1)||z===worldDepth-1)
+geometries.push(pzGeometry.clone().applyMatrix4(matrix));
 
-                controls = new FirstPersonControls( camera, renderer.domElement );
+if((nz!==h && nz!==h+1)||z===0)
+geometries.push(nzGeometry.clone().applyMatrix4(matrix));
 
-                controls.movementSpeed = 1000;
-                controls.lookSpeed = 0.125;
-                controls.lookVertical = true;
+}
+}
 
-                stats = new Stats();
-                container.appendChild( stats.dom );
+const geometry = BufferGeometryUtils.mergeGeometries(geometries);
 
-                window.addEventListener( 'resize', onWindowResize );
+const texture = new THREE.TextureLoader().load('textures/minecraft/atlas.png');
+texture.colorSpace = THREE.SRGBColorSpace;
+texture.magFilter = THREE.NearestFilter;
 
-            }
+const mesh = new THREE.Mesh(
+geometry,
+new THREE.MeshLambertMaterial({map:texture})
+);
 
-            function onWindowResize() {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize( window.innerWidth, window.innerHeight );
-                controls.handleResize();
-            }
+scene.add(mesh);
 
-            function generateHeight( width, height ) {
-                const data = [], perlin = new ImprovedNoise(),
-                    size = width * height, z = Math.random() * 100;
-                let quality = 2;
 
-                for ( let j = 0; j < 4; j ++ ) {
-                    if ( j === 0 ) for ( let i = 0; i < size; i ++ ) data[ i ] = 0;
+////////////////////////////////////
+//// ARBOLES
+////////////////////////////////////
 
-                    for ( let i = 0; i < size; i ++ ) {
-                        const x = i % width, y = ( i / width ) | 0;
-                        data[ i ] += perlin.noise( x / quality, y / quality, z ) * quality;
-                    }
-                    quality *= 4;
-                }
-                return data;
-            }
+function createTree(x,z){
 
-            function getY( x, z ) {
-                return ( data[ x + z * worldWidth ] * 0.15 ) | 0;
-            }
+const trunk = new THREE.Mesh(
+new THREE.BoxGeometry(30,100,30),
+new THREE.MeshLambertMaterial({color:0x8b5a2b})
+);
 
-            function animate() {
-                render();
-                stats.update();
-            }
+const leaves = new THREE.Mesh(
+new THREE.BoxGeometry(100,100,100),
+new THREE.MeshLambertMaterial({color:0x2e8b57})
+);
 
-            function render() {
-                // SOLUCIÓN: Usamos clock.getDelta() para pasarle el tiempo a los controles
-                controls.update( clock.getDelta() );
-                renderer.render( scene, camera );
-            }
+const y = getY(x,z)*100;
 
-        </script>
+trunk.position.set(
+x*100-worldHalfWidth*100,
+y+50,
+z*100-worldHalfDepth*100
+);
 
-    </body>
+leaves.position.set(
+x*100-worldHalfWidth*100,
+y+130,
+z*100-worldHalfDepth*100
+);
+
+scene.add(trunk);
+scene.add(leaves);
+
+}
+
+for(let i=0;i<40;i++){
+
+const x=Math.floor(Math.random()*worldWidth);
+const z=Math.floor(Math.random()*worldDepth);
+
+createTree(x,z);
+
+}
+
+
+////////////////////////////////////
+//// LAGO
+////////////////////////////////////
+
+const water = new THREE.Mesh(
+new THREE.PlaneGeometry(800,800),
+new THREE.MeshLambertMaterial({
+color:0x4fa4ff,
+transparent:true,
+opacity:0.7
+})
+);
+
+water.rotation.x = -Math.PI/2;
+water.position.set(0,20,0);
+
+scene.add(water);
+
+
+////////////////////////////////////
+//// ANIMALES
+////////////////////////////////////
+
+function createAnimal(){
+
+const animal = new THREE.Mesh(
+new THREE.BoxGeometry(40,40,40),
+new THREE.MeshLambertMaterial({color:0xffffff})
+);
+
+animal.position.set(
+(Math.random()-0.5)*8000,
+100,
+(Math.random()-0.5)*8000
+);
+
+scene.add(animal);
+animals.push(animal);
+
+}
+
+for(let i=0;i<8;i++) createAnimal();
+
+
+////////////////////////////////////
+//// SOL
+////////////////////////////////////
+
+const sun = new THREE.DirectionalLight(0xffffff,3);
+scene.add(sun);
+
+const ambientLight = new THREE.AmbientLight(0xaaaaaa,2);
+scene.add(ambientLight);
+
+
+////////////////////////////////////
+//// RENDERER
+////////////////////////////////////
+
+renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+container.appendChild(renderer.domElement);
+
+
+////////////////////////////////////
+//// CONTROLES
+////////////////////////////////////
+
+controls = new PointerLockControls(camera,document.body);
+
+document.body.addEventListener("click",()=>{
+
+controls.lock();
+
+});
+
+scene.add(controls.getObject());
+
+
+////////////////////////////////////
+//// TECLADO
+////////////////////////////////////
+
+document.addEventListener("keydown",(e)=>{
+
+if(e.code==="KeyW") move.forward=true;
+if(e.code==="KeyS") move.back=true;
+if(e.code==="KeyA") move.left=true;
+if(e.code==="KeyD") move.right=true;
+
+});
+
+document.addEventListener("keyup",(e)=>{
+
+if(e.code==="KeyW") move.forward=false;
+if(e.code==="KeyS") move.back=false;
+if(e.code==="KeyA") move.left=false;
+if(e.code==="KeyD") move.right=false;
+
+});
+
+
+stats = new Stats();
+container.appendChild(stats.dom);
+
+window.addEventListener("resize",onWindowResize);
+
+}
+
+function onWindowResize(){
+
+camera.aspect = window.innerWidth/window.innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(window.innerWidth,window.innerHeight);
+
+}
+
+
+function generateHeight(width,height){
+
+const data=[];
+const perlin=new ImprovedNoise();
+
+const size=width*height;
+const z=Math.random()*100;
+
+let quality=2;
+
+for(let j=0;j<4;j++){
+
+if(j===0)
+for(let i=0;i<size;i++) data[i]=0;
+
+for(let i=0;i<size;i++){
+
+const x=i%width;
+const y=(i/width)|0;
+
+data[i]+=perlin.noise(x/quality,y/quality,z)*quality;
+
+}
+
+quality*=4;
+
+}
+
+return data;
+
+}
+
+function getY(x,z){
+
+return (data[x+z*worldWidth]*0.15)|0;
+
+}
+
+
+function animate(){
+
+requestAnimationFrame(animate);
+
+render();
+stats.update();
+
+}
+
+animate();
+
+
+function render(){
+
+const delta = clock.getDelta();
+
+if(move.forward) controls.moveForward(speed*delta);
+if(move.back) controls.moveForward(-speed*delta);
+if(move.left) controls.moveRight(-speed*delta);
+if(move.right) controls.moveRight(speed*delta);
+
+
+animals.forEach(a=>{
+a.position.x += Math.sin(Date.now()*0.001)*0.5;
+a.position.z += Math.cos(Date.now()*0.001)*0.5;
+});
+
+
+time += 0.002;
+
+sun.position.x = Math.sin(time)*8000;
+sun.position.y = Math.cos(time)*8000;
+
+if(sun.position.y<0){
+
+scene.background = new THREE.Color(0x0a0a2a);
+
+}else{
+
+scene.background = new THREE.Color(0x87CEEB);
+
+}
+
+renderer.render(scene,camera);
+
+}
+
+</script>
+
+
+<footer class="footer">
+<p>Proyecto Three.js - Mundo estilo Minecraft 🌲</p>
+</footer>
+
+
+</body>
 </html>

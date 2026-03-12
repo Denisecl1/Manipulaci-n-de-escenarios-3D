@@ -2582,3 +2582,60 @@ iframe#viewer {
 }
 
 
+/* NAVBAR */
+
+.navbar{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:60px;
+background:rgba(30,30,30,0.8);
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:0 30px;
+z-index:200;
+backdrop-filter: blur(5px);
+}
+
+.navbar .logo{
+color:white;
+font-weight:bold;
+font-size:20px;
+}
+
+.navbar ul{
+display:flex;
+gap:20px;
+list-style:none;
+}
+
+.navbar a{
+color:white;
+text-decoration:none;
+font-weight:500;
+transition:0.3s;
+}
+
+.navbar a:hover{
+color:#6cf06c;
+}
+
+
+/* FOOTER */
+
+.footer{
+position:fixed;
+bottom:0;
+left:0;
+width:100%;
+height:40px;
+background:rgba(0,0,0,0.7);
+color:white;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:14px;
+z-index:200;
+}
