@@ -2,18 +2,22 @@
 <html lang="en">
 <head>
 <title>three.js webgl - geometry - minecraft</title>
-
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, user-scalable=no">
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 
-<link rel="stylesheet" href="css/styles.css">
+<link type="text/css" rel="stylesheet" href="css/styles.css">
 
 <style>
 
 body{
+background-color:#bfd1e5;
+color:#61443e;
 margin:0;
 overflow:hidden;
-background:#bfd1e5;
+}
+
+a{
+color:#a06851;
 }
 
 #info{
@@ -22,11 +26,11 @@ top:10px;
 width:100%;
 text-align:center;
 z-index:100;
+display:block;
 font-family:monospace;
 }
 
 </style>
-
 </head>
 
 <body>
@@ -34,26 +38,44 @@ font-family:monospace;
 <nav class="navbar">
 <div class="logo">🌎 Minecraft World</div>
 <ul>
-<li><a href="#">Inicio</a></li>
-<li><a href="#">Explorar</a></li>
-<li><a href="#">Mundo</a></li>
-<li><a href="#">Contacto</a></li>
+<li><a href="index.html">Inicio</a></li>
+
+<li><a href="minecraft.html">Minecraft</a></li>
+
+<li><a href="orbit.html">Orbit Controls</a></li>
+
+<li><a href="map.html" class="active">Map Controls</a></li>
+
+<li><a href="pointerlock.html">Pointer Lock</a></li>
 </ul>
 </nav>
 
 <div id="container"></div>
 
 <div id="info">
-three.js - minecraft demo
+<a href="https://threejs.org" target="_blank">three.js</a> -
+<a href="http://www.minecraft.net/" target="_blank">minecraft</a> demo
 <br>
-click para controlar la cámara
+(left click: forward, right click: backward)
 </div>
+
+<div id="controlsGuide">
+
+<b>🎮 Controles</b><br>
+H → Mostrar/Ocultar ayuda<br>
+W / Click izquierdo → Avanzar<br>
+S / Click derecho → Retroceder<br>
+Mouse → Mirar alrededor<br>
+Shift → Acelerar movimiento<br>
+
+</div>
+
 
 <script type="importmap">
 {
-"imports":{
-"three":"https://unpkg.com/three@0.160.0/build/three.module.js",
-"three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+"imports": {
+"three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+"three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
 }
 }
 </script>
@@ -62,52 +84,78 @@ click para controlar la cámara
 
 import * as THREE from 'three';
 import Stats from 'three/addons/libs/stats.module.js';
-import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { FirstPersonControls } from 'three/addons/controls/FirstPersonControls.js';
 import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
 let container, stats;
 let camera, controls, scene, renderer;
 
-const animals = [];
-let time = 0;
-
-const move = {
-forward:false,
-back:false,
-left:false,
-right:false
-};
-
-const speed = 400;
-
 const worldWidth = 128;
 const worldDepth = 128;
+const worldHalfWidth = worldWidth / 2;
+const worldHalfDepth = worldDepth / 2;
 
-const worldHalfWidth = worldWidth/2;
-const worldHalfDepth = worldDepth/2;
-
-const data = generateHeight(worldWidth,worldDepth);
+const data = generateHeight(worldWidth, worldDepth);
 
 const clock = new THREE.Clock();
+
+const animals = [];
+
+/* NUEVO: variables del ciclo día/noche */
+let sunAngle = 0;
+let daySpeed = 0.0005;
+
+/* AGREGADO */
+let normalSpeed = 400;
+let fastSpeed = 900;
 
 init();
 
 function init(){
 
-container = document.getElementById("container");
+window.addEventListener("keydown", (e)=>{
+
+if(e.key === "h" || e.key === "H"){
+
+const guide = document.getElementById("controlsGuide");
+
+guide.style.display =
+guide.style.display === "none" ? "block" : "none";
+
+}
+
+});
+
+/* AGREGADO */
+window.addEventListener("keydown",(e)=>{
+if(e.key === "Shift"){
+controls.movementSpeed = fastSpeed;
+}
+});
+
+/* AGREGADO */
+window.addEventListener("keyup",(e)=>{
+if(e.key === "Shift"){
+controls.movementSpeed = normalSpeed;
+}
+});
+
+
+container = document.getElementById('container');
 
 camera = new THREE.PerspectiveCamera(
 60,
-window.innerWidth/window.innerHeight,
+window.innerWidth / window.innerHeight,
 1,
 20000
 );
 
-camera.position.y = 200;
+camera.position.y = getY(worldHalfWidth,worldHalfDepth)*100+100;
 
 scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87CEEB);
+scene.background = new THREE.Color(0xbfd1e5);
+scene.fog = new THREE.Fog(0xbfd1e5,2000,9000);
 
 const matrix = new THREE.Matrix4();
 
@@ -161,22 +209,27 @@ const nz=getY(x,z-1);
 
 geometries.push(pyGeometry.clone().applyMatrix4(matrix));
 
-if((px!==h && px!==h+1)||x===0)
+if((px!==h && px!==h+1)||x===0){
 geometries.push(pxGeometry.clone().applyMatrix4(matrix));
+}
 
-if((nx!==h && nx!==h+1)||x===worldWidth-1)
+if((nx!==h && nx!==h+1)||x===worldWidth-1){
 geometries.push(nxGeometry.clone().applyMatrix4(matrix));
+}
 
-if((pz!==h && pz!==h+1)||z===worldDepth-1)
+if((pz!==h && pz!==h+1)||z===worldDepth-1){
 geometries.push(pzGeometry.clone().applyMatrix4(matrix));
+}
 
-if((nz!==h && nz!==h+1)||z===0)
+if((nz!==h && nz!==h+1)||z===0){
 geometries.push(nzGeometry.clone().applyMatrix4(matrix));
+}
 
 }
 }
 
 const geometry = BufferGeometryUtils.mergeGeometries(geometries);
+geometry.computeBoundingSphere();
 
 const texture = new THREE.TextureLoader().load('textures/minecraft/atlas.png');
 texture.colorSpace = THREE.SRGBColorSpace;
@@ -184,27 +237,27 @@ texture.magFilter = THREE.NearestFilter;
 
 const mesh = new THREE.Mesh(
 geometry,
-new THREE.MeshLambertMaterial({map:texture})
+new THREE.MeshLambertMaterial({
+map:texture,
+side:THREE.DoubleSide
+})
 );
 
 scene.add(mesh);
 
-
-////////////////////////////////////
+////////////////////////////////////////////////////
 //// ARBOLES
-////////////////////////////////////
+////////////////////////////////////////////////////
 
 function createTree(x,z){
 
-const trunk = new THREE.Mesh(
-new THREE.BoxGeometry(30,100,30),
-new THREE.MeshLambertMaterial({color:0x8b5a2b})
-);
+const trunkGeo = new THREE.BoxGeometry(30,100,30);
+const trunkMat = new THREE.MeshLambertMaterial({color:0x8b5a2b});
+const trunk = new THREE.Mesh(trunkGeo,trunkMat);
 
-const leaves = new THREE.Mesh(
-new THREE.BoxGeometry(100,100,100),
-new THREE.MeshLambertMaterial({color:0x2e8b57})
-);
+const leavesGeo = new THREE.BoxGeometry(100,100,100);
+const leavesMat = new THREE.MeshLambertMaterial({color:0x2e8b57});
+const leaves = new THREE.Mesh(leavesGeo,leavesMat);
 
 const y = getY(x,z)*100;
 
@@ -234,36 +287,53 @@ createTree(x,z);
 
 }
 
+////////////////////////////////////////////////////
+//// LAGO MEJORADO
+////////////////////////////////////////////////////
 
-////////////////////////////////////
-//// LAGO
-////////////////////////////////////
-
-const water = new THREE.Mesh(
-new THREE.PlaneGeometry(800,800),
-new THREE.MeshLambertMaterial({
+const waterMaterial = new THREE.MeshLambertMaterial({
 color:0x4fa4ff,
 transparent:true,
-opacity:0.7
-})
-);
+opacity:0.75
+});
+
+const lakes = [];
+
+for(let i=0;i<15;i++){
+
+const size = 600 + Math.random()*600;
+
+const waterGeometry = new THREE.PlaneGeometry(size,size);
+const water = new THREE.Mesh(waterGeometry,waterMaterial);
 
 water.rotation.x = -Math.PI/2;
-water.position.set(0,20,0);
+
+const x = Math.floor(Math.random()*worldWidth);
+const z = Math.floor(Math.random()*worldDepth);
+
+const y = getY(x,z)*100;
+
+water.position.set(
+x*100-worldHalfWidth*100,
+y + 8,
+z*100-worldHalfDepth*100
+);
 
 scene.add(water);
+lakes.push(water);
 
+}
 
-////////////////////////////////////
+////////////////////////////////////////////////////
 //// ANIMALES
-////////////////////////////////////
+////////////////////////////////////////////////////
 
 function createAnimal(){
 
-const animal = new THREE.Mesh(
-new THREE.BoxGeometry(40,40,40),
-new THREE.MeshLambertMaterial({color:0xffffff})
-);
+const geo=new THREE.BoxGeometry(40,40,40);
+const mat=new THREE.MeshLambertMaterial({color:0xffffff});
+
+const animal=new THREE.Mesh(geo,mat);
 
 animal.position.set(
 (Math.random()-0.5)*8000,
@@ -276,71 +346,43 @@ animals.push(animal);
 
 }
 
-for(let i=0;i<8;i++) createAnimal();
+for(let i=0;i<8;i++){
+createAnimal();
+}
 
+////////////////////////////////////////////////////
+//// LUCES
+////////////////////////////////////////////////////
 
-////////////////////////////////////
-//// SOL
-////////////////////////////////////
-
-const sun = new THREE.DirectionalLight(0xffffff,3);
-scene.add(sun);
-
-const ambientLight = new THREE.AmbientLight(0xaaaaaa,2);
+const ambientLight = new THREE.AmbientLight(0xeeeeee,3);
 scene.add(ambientLight);
 
+const directionalLight = new THREE.DirectionalLight(0xffffff,12);
+directionalLight.position.set(1,1,0.5).normalize();
+scene.add(directionalLight);
 
-////////////////////////////////////
-//// RENDERER
-////////////////////////////////////
+scene.userData.sun = directionalLight;
 
 renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setAnimationLoop(animate);
+
 container.appendChild(renderer.domElement);
 
+controls = new FirstPersonControls(camera,renderer.domElement);
 
-////////////////////////////////////
-//// CONTROLES
-////////////////////////////////////
-
-controls = new PointerLockControls(camera,document.body);
-
-document.body.addEventListener("click",()=>{
-
-controls.lock();
-
-});
-
-scene.add(controls.getObject());
-
-
-////////////////////////////////////
-//// TECLADO
-////////////////////////////////////
-
-document.addEventListener("keydown",(e)=>{
-
-if(e.code==="KeyW") move.forward=true;
-if(e.code==="KeyS") move.back=true;
-if(e.code==="KeyA") move.left=true;
-if(e.code==="KeyD") move.right=true;
-
-});
-
-document.addEventListener("keyup",(e)=>{
-
-if(e.code==="KeyW") move.forward=false;
-if(e.code==="KeyS") move.back=false;
-if(e.code==="KeyA") move.left=false;
-if(e.code==="KeyD") move.right=false;
-
-});
-
+controls.movementSpeed = 400;
+controls.lookSpeed = 0.05;
+controls.lookVertical = true;
+controls.constrainVertical = true;
+controls.verticalMin = 1.0;
+controls.verticalMax = 2.0;
 
 stats = new Stats();
 container.appendChild(stats.dom);
 
-window.addEventListener("resize",onWindowResize);
+window.addEventListener('resize',onWindowResize);
 
 }
 
@@ -348,10 +390,12 @@ function onWindowResize(){
 
 camera.aspect = window.innerWidth/window.innerHeight;
 camera.updateProjectionMatrix();
+
 renderer.setSize(window.innerWidth,window.innerHeight);
 
-}
+controls.handleResize();
 
+}
 
 function generateHeight(width,height){
 
@@ -365,8 +409,11 @@ let quality=2;
 
 for(let j=0;j<4;j++){
 
-if(j===0)
-for(let i=0;i<size;i++) data[i]=0;
+if(j===0){
+for(let i=0;i<size;i++){
+data[i]=0;
+}
+}
 
 for(let i=0;i<size;i++){
 
@@ -386,54 +433,39 @@ return data;
 }
 
 function getY(x,z){
-
 return (data[x+z*worldWidth]*0.15)|0;
-
 }
-
 
 function animate(){
-
-requestAnimationFrame(animate);
-
 render();
 stats.update();
-
 }
-
-animate();
-
 
 function render(){
 
-const delta = clock.getDelta();
-
-if(move.forward) controls.moveForward(speed*delta);
-if(move.back) controls.moveForward(-speed*delta);
-if(move.left) controls.moveRight(-speed*delta);
-if(move.right) controls.moveRight(speed*delta);
-
+controls.update(clock.getDelta());
 
 animals.forEach(a=>{
 a.position.x += Math.sin(Date.now()*0.001)*0.5;
 a.position.z += Math.cos(Date.now()*0.001)*0.5;
 });
 
+sunAngle += daySpeed;
 
-time += 0.002;
+const sun = scene.userData.sun;
 
-sun.position.x = Math.sin(time)*8000;
-sun.position.y = Math.cos(time)*8000;
+sun.position.x = Math.sin(sunAngle) * 4000;
+sun.position.y = Math.cos(sunAngle) * 4000;
 
-if(sun.position.y<0){
+sun.intensity = Math.max(0, Math.cos(sunAngle)) * 12;
 
-scene.background = new THREE.Color(0x0a0a2a);
+const t = (Math.cos(sunAngle)+1)/2;
 
-}else{
+const dayColor = new THREE.Color(0xbfd1e5);
+const nightColor = new THREE.Color(0x0b0f2a);
 
-scene.background = new THREE.Color(0x87CEEB);
-
-}
+scene.background = dayColor.clone().lerp(nightColor,1-t);
+scene.fog.color = scene.background;
 
 renderer.render(scene,camera);
 
@@ -441,11 +473,9 @@ renderer.render(scene,camera);
 
 </script>
 
-
 <footer class="footer">
-<p>Proyecto Three.js - Mundo estilo Minecraft 🌲</p>
+<p>Autor: Diana Densie Campos Lozano Proyecto Three.js - Mundo estilo Minecraft 🌲</p>
 </footer>
-
 
 </body>
 </html>
